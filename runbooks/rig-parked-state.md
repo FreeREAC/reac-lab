@@ -107,34 +107,50 @@ the router's local oscillator**, not the master's — a hardware limit of the
 mt7531/MTK GMAC (no PTP hardware clock, no ETF offload), curable only by moving
 to an **Intel i226** with HW PTP + ETF offload.
 
-**That attribution is now in doubt, and the doubt is cheap to settle.** The same
-symptom family in `reac-pw` was measured on 2026-08-23 and the oscillator was
-**not** the cause. The cause was the pacing loop re-basing its deadline onto
-every late wake — `deadline = now + period` instead of `deadline += period` —
-which silently abandons a slot on each overrun. It abandoned **~3.6 slots per
-second**; accumulating the deadline absolutely instead moved wire drift from
-**−526.7 ppm to −8.7 ppm** and cut graph→wire latency by 66 ms. No hardware
-changed. The `~3.6` here and the `~3.6 slots/s` there may be the same number,
-and if they are, the i226 buys nothing this bug is not already causing.
+**One candidate cause has been examined and excluded; the stated one has not
+been examined at all.**
 
-**UNVERIFIED here** — `reac_repacer.c` is not in this repo, so nothing in
-reac-lab settles it. Two checks do, in this order, and neither needs new gear:
+The candidate came from `reac-pw`, where the same symptom family was measured on
+2026-08-23 and the oscillator was **not** the cause. There the pacing loop
+re-based its deadline onto every late wake — `deadline = now + period` instead of
+`deadline += period` — abandoning a slot on each overrun, **~3.6 slots per
+second**. Accumulating the deadline absolutely moved wire drift from
+**−526.7 ppm to −8.7 ppm** and cut graph→wire latency by 66 ms, on unchanged
+hardware. Given the `~3.6` in both places, the mechanism was worth checking here.
 
-1. **Read the pacing loop.** In `tools/reac_repacer.c`, find where the
-   `clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME)` deadline is advanced. If it
-   is ever recomputed from a fresh `clock_gettime` after a late wake, that is the
-   defect. `2026-06-03-reac-repacer-design.md` §5 specifies an *accumulated*
-   deadline and calls it drift-free, so the design is already right — the
-   question is only whether the code kept it.
-2. **Ask the counter, which discriminates.** A LOST frame leaves a gap in the
-   REAC sequence counter; an UNRUN emit slot leaves the counter contiguous. So a
-   capture of reac1's egress separates "the link dropped it" from "we never sent
-   it" with no timing analysis at all. Count contiguous-counter holes in time
-   over a long run — if they land at ~3.6/s, the floor is the pacing loop and
-   the oscillator is exonerated.
+**EVIDENCED — `reac-repacer` does not have that defect.** `tools/reac_repacer.c`
+initialises the emit deadline once (`:1509`) and thereafter only accumulates it,
+carrying the fractional nanoseconds so the mean cadence is exactly the base
+period (`:1757`); `clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME)` sleeps *to*
+that absolute deadline. The one re-base onto a fresh clock read (`:1845`) is a
+deliberate re-lock on a detected sample-rate change, which also re-prefills the
+ring — correct behaviour, not the defect. The deadline rule is stated as law in
+that repo's `docs/internals.md`, under "The recovered output clock". The two
+`~3.6`s are therefore most likely coincidence, and fact-8's mechanism does not
+explain this floor.
 
-Until one of those is done, treat "software ceiling" as a hypothesis and the
-i226 purchase as unjustified.
+**UNVERIFIED — the oscillator attribution itself.** Excluding one cause does not
+restore another. Nothing has ever tested that reac1's frequency clock is what
+sets this floor; it was asserted, and an i226 was scoped from the assertion.
+
+**The measurement that now matters** needs no new gear and no hardware spend:
+**ask the counter, which discriminates.** A frame the link LOST leaves a gap in
+the REAC sequence counter; a slot the pacer never RAN leaves the counter
+contiguous. So a capture of reac1's egress separates "the link dropped it" from
+"we never sent it" with no timing analysis at all. Count contiguous-counter holes
+in time over a long run: if they cluster at ~3.6/s the floor is in the emit path
+after all, and if the counter is clean the emit path is exonerated and the clock
+source becomes the live suspect for the first time.
+
+Until that is run, treat "software ceiling" as a hypothesis and the i226 purchase
+as unjustified.
+
+> A capture long enough to answer this needs a tool that survives the counter
+> wrap. The 16-bit counter turns over every 65536 frames — 8.2 s at 96 kHz — and
+> the reac-tools instruments used to key a dict on the raw value and sort it,
+> which silently truncated anything longer and spliced what remained. Fixed
+> 2026-08-23 (`reac_codec.order_by_counter`); check you are on that or later
+> before trusting a long run.
 
 ## Appendix A — `/root/reac1-restore.sh`
 ```sh
