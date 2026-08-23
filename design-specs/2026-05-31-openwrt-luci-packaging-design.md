@@ -1,5 +1,20 @@
 # reac-aes67 — OpenWrt packaging + LuCI app design
 
+> **SUPERSEDED IN PART — the UCI `rate` option below rests on two refuted
+> claims.** Kept as the record of what was believed on 2026-05-31; the live
+> answer is in [FreeREAC/reac-protocol](https://github.com/FreeREAC/reac-protocol).
+>
+> - **"40 ch @ 48k / 20 ch @ 96k … channel count is a property of the mode" —
+>   REFUTED.** The frame carries 40 channel slots × 12 samples at every rate.
+>   96 kHz doubles the packet rate to 8000/s; it does not halve the width.
+> - **"NOT wire-detectable: set here" — REFUTED.** `rate = pps × 12`, so a
+>   capture settles the rate on its own (3675 / 4000 / 8000 pps). A `rate`
+>   option is a legitimate PIN for installations that never move, not the only
+>   source of the answer.
+>
+> The packaging structure itself — UCI as the single source of truth, one daemon
+> per stream, ubus status, the AES67-off-the-REAC-segment rule — is unaffected.
+
 **Date:** 2026-05-31
 **Status:** Implemented — both apk cross-built for aarch64 (`mediatek/filogic`)
 and mips (`ramips/mt7621`) (2026-05-31). Validated end-to-end on hardware on a

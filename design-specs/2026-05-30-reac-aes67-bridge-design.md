@@ -1,5 +1,25 @@
 # REAC → AES67 Bridge — Design
 
+> **SUPERSEDED IN PART — two central claims below are refuted by measurement.**
+> This document is kept as the record of what was believed on 2026-05-30. The
+> live answer is in [FreeREAC/reac-protocol](https://github.com/FreeREAC/reac-protocol).
+>
+> 1. **"96 kHz halves the channel count to 20 and doubles the samples per frame
+>    to 24" — REFUTED.** 96 kHz doubles the PACKET RATE. The frame stays 40
+>    channel slots × 12 samples at every rate; the geometry is `52 + n × 36`
+>    bytes and is rate-invariant. Packet rate is 3675/s at 44.1 kHz, 4000/s at
+>    48 kHz, 8000/s at 96 kHz. The mode descriptor `{96000, 20, 24}` and every
+>    "20 ch @ 96 k" figure below are wrong. (The R-1000 manual's "24 tracks at
+>    96 kHz" that seeded this is a recorder storage limit, not a REAC width —
+>    already suspected in the 2026-05-31 capture-campaign spec, and settled by
+>    the rig: `runbooks/rig-parked-state.md` §4 reads 8000 fps at 96 kHz on a
+>    40-slot stream.)
+> 2. **"Rate is NOT distinguishable from packet rate … it must come from config"
+>    — REFUTED.** Rate is not a wire FIELD, but it is a wire OBSERVABLE:
+>    `rate = pps × 12`. Every rate has its own packet rate, so a capture alone
+>    settles it. The re-pacer does this continuously and follows a live rate
+>    change without configuration (see `2026-06-03-reac-repacer-design.md` §11).
+
 **Date:** 2026-05-30
 **Status:** Implemented (M1+M2) — decode/clock/PLC/RTP/capture/send done, 33
 tests + cross-verify green; apk built for aarch64. On-device smoke pending.

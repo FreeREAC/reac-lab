@@ -1,5 +1,26 @@
 # On-rig REAC capture campaign — plan
 
+> **SUPERSEDED WHERE IT ASKS A QUESTION THAT IS NOW ANSWERED.** Kept as the
+> record of what was open on 2026-05-31; the live answer is in
+> [FreeREAC/reac-protocol](https://github.com/FreeREAC/reac-protocol).
+>
+> - **Step 4's two candidates are decided: double-pps won.** 96 kHz is
+>   `{96000, 40, 12}` — 8000 packets/s, all 40 channel slots, 12 samples each.
+>   Channel-halving `{96000, 20, 24}` is refuted. The rig reads 8000 fps on a
+>   40-slot 96 kHz stream (`runbooks/rig-parked-state.md` §4). Do not spend a
+>   session re-running the decisive capture.
+> - **The rate fingerprint stated below is correct and now settled:**
+>   `rate = pps × 12`, frame geometry `52 + n × 36` bytes, rate-invariant.
+>   Per-frame wire overhead is +24 B over the payload (the 1516 B figure in the
+>   table), not +38.
+> - **Step 5's premise has moved.** A stagebox channel is digitally silent until
+>   a State-4 COMMIT promotes staged head-amp values into the active table. An
+>   announce/handshake alone does not arm a bank, so "emit MASTER_ANNOUNCE + the
+>   replayed control cadence + a tone" is not sufficient to hear anything. See
+>   the enrolment law in reac-protocol before planning a bench acceptance test.
+>
+> Steps 1, 1b, 2, 3 and 8 stand as written.
+
 **Date:** 2026-05-31
 **Status:** Plan, to execute at the venue (needs the live rig)
 **Repo:** `FreeREAC/reac-aes67`
