@@ -100,15 +100,41 @@ backups: `/root/reacN-restore.sh.pre-closeout`.
 - **Faint, unconfirmed impression:** A slightly "beepy", B slightly "granular".
   Too slight to affirm; recorded for the i226 A/B comparison.
 
-## 8. The residual floor and the real fix (next hardware)
-The remaining ~3.6 Hz wobble / ~111 clicks-per-second floor is **not tunable in
-software on this hardware**. Root cause: reac1 paces the upstream phase by the
-downstream but its **frequency clock is the router's local oscillator**, not the
-master's. The correct fix — *recover the M-5000 clock from the downstream and
-discipline the upstream emit to it* (true loop-timing, exactly what a REAC slave
-does) — needs a **disciplinable hardware clock (PTP)**, which the mt7531/MTK GMAC
-lacks (no PTP HW clock, no ETF HW offload). The **Intel i226** path (HW PTP + ETF
-offload) is what unlocks it. Until then this rig is at its software ceiling.
+## 8. The residual floor — RE-OPENED, do not buy hardware on it yet
+The remaining ~3.6 Hz wobble / ~111 clicks-per-second floor was attributed to
+reac1 pacing the upstream phase by the downstream while its **frequency clock is
+the router's local oscillator**, not the master's — a hardware limit of the
+mt7531/MTK GMAC (no PTP hardware clock, no ETF offload), curable only by moving
+to an **Intel i226** with HW PTP + ETF offload.
+
+**That attribution is now in doubt, and the doubt is cheap to settle.** The same
+symptom family in `reac-pw` was measured on 2026-08-23 and the oscillator was
+**not** the cause. The cause was the pacing loop re-basing its deadline onto
+every late wake — `deadline = now + period` instead of `deadline += period` —
+which silently abandons a slot on each overrun. It abandoned **~3.6 slots per
+second**; accumulating the deadline absolutely instead moved wire drift from
+**−526.7 ppm to −8.7 ppm** and cut graph→wire latency by 66 ms. No hardware
+changed. The `~3.6` here and the `~3.6 slots/s` there may be the same number,
+and if they are, the i226 buys nothing this bug is not already causing.
+
+**UNVERIFIED here** — `reac_repacer.c` is not in this repo, so nothing in
+reac-lab settles it. Two checks do, in this order, and neither needs new gear:
+
+1. **Read the pacing loop.** In `tools/reac_repacer.c`, find where the
+   `clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME)` deadline is advanced. If it
+   is ever recomputed from a fresh `clock_gettime` after a late wake, that is the
+   defect. `2026-06-03-reac-repacer-design.md` §5 specifies an *accumulated*
+   deadline and calls it drift-free, so the design is already right — the
+   question is only whether the code kept it.
+2. **Ask the counter, which discriminates.** A LOST frame leaves a gap in the
+   REAC sequence counter; an UNRUN emit slot leaves the counter contiguous. So a
+   capture of reac1's egress separates "the link dropped it" from "we never sent
+   it" with no timing analysis at all. Count contiguous-counter holes in time
+   over a long run — if they land at ~3.6/s, the floor is the pacing loop and
+   the oscillator is exonerated.
+
+Until one of those is done, treat "software ceiling" as a hypothesis and the
+i226 purchase as unjustified.
 
 ## Appendix A — `/root/reac1-restore.sh`
 ```sh
