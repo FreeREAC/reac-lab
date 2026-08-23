@@ -53,9 +53,12 @@ reac-aes67 --listen <reac-iface> --udp 239.69.0.3:5008 --name REAC-C --rate <RAT
   the AES67 multicast crosses the **WDS** to reach the laptop, it adds ~275 Mbit/s onto the
   already-loaded WDS and **will degrade the re-pace audio**. Running on reac2 with `--iface`
   = the wired LAN5 keeps it off the WDS.
-- **RATE:** REAC here is **96 kHz** → use `--rate 96000` (the daemon does NOT resample; the
-  rate isn't wire-detectable, so a wrong `--rate` makes the SDP lie → silence/wrong pitch).
-  The `allowed-rates=[48000 96000]` drop-in lets PipeWire clock-switch.
+- **RATE:** REAC here is **96 kHz** → use `--rate 96000`. The daemon does NOT resample, so a
+  wrong `--rate` makes the SDP lie → silence / wrong pitch. `--rate` is a PIN, not the only
+  way to learn the rate: measure it off the wire first with
+  `python3 -m reac.characterize <pcap>` — `rate = pps × 12`, so 8000 pps is 96 kHz — and pin
+  what you measured. The `allowed-rates=[48000 96000]` drop-in lets PipeWire clock-switch.
+  40 channel slots at every rate; 96 kHz doubles the packet rate, it does not halve the width.
 - **PTP:** not needed for monitoring (`sess.ts-direct=false` free-runs + resamples; may click
   on corrections, can't keep A/B/C sample-aligned). Spec-correct multi-stream alignment would
   need `ptp4l` (not installed) + a PTP grandmaster — which this REAC chain may not have.

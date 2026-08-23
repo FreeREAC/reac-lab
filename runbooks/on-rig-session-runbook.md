@@ -14,6 +14,13 @@ ordered "follow it on the day" sheet; the detailed rationale is in
   (no Roland source; contradicts the evidence).
 - **REAC = 100BASE-TX** (Roland support, verbatim), EtherType 0x8819, 40-ch hard
   cap/connection, protocol latency 0.375 ms, **44.1/48/96 kHz all supported**.
+- **Frame geometry is `52 + n × 36` bytes and is RATE-INVARIANT**: 12 samples ×
+  3 B per channel slot at every rate, 40 slots on the master's downstream.
+- **96 kHz doubles the PACKET RATE, it does not halve the channels.** The model
+  is `{96000, 40, 12}` at 8000 pps. Channel-halving `{96000, 20, 24}` is dead.
+- **The rate is a wire OBSERVABLE**, not a config-only value: `rate = pps × 12`
+  → 3675 pps = 44.1 kHz, 4000 = 48 kHz, 8000 = 96 kHz. A capture settles it.
+- **A 96 kHz segment costs 97.0 Mbit/s.** ~10 boxes per gigabit link; plan 8.
 - **Current open problem = audio SATURATED + unnatural at 48k, glitch-free** →
   a **signal/format** issue (gain-staging or 24-bit justification), not timing.
 
@@ -83,14 +90,18 @@ python3 -m reac.characterize 48k.pcap                       # 'saturated' count
 python3 -m reac.characterize onechan.pcap   # expect active == 1; >1 = stride/justification wrong
 ```
 
-**[4] THE DECISIVE 96k capture** (settles double-pps vs channel-halving; needs a
-96k-capable master). Use `-s0` full frames; the script already does.
+**[4] 96k confirmation capture** (a regression check, NOT a decision — the model
+is settled as `{96000, 40, 12}`, 8000 pps, 40 slots). Needs a 96k-capable
+master. Use `-s0` full frames; the script already does.
 ```sh
 ssh root@192.168.10.1 'sh capture-campaign.sh lan1 20 /tmp/96k.pcap 96k'
 python3 -m reac.characterize 96k.pcap
-#   ~8000 pps + ~40 active -> double-pps   => fix REAC_MODE_96K = {96000,40,12}
-#   ~4000 pps + ~20 active -> channel-halving => current {96000,20,24} is right
+#   expect ~8000 pps + ~40 active slots.
+#   anything else is a rig fault to chase, not a second 96 kHz model.
 ```
+Read the active-slot count as a count of slots carrying SIGNAL. Idle slots are
+silent, so a 96 kHz stream feeding only 20 live inputs still reports ~20 active
+on a 40-slot frame — that is the patch, not the framing.
 
 **[8e] 44.1k feasibility.** Set the console master to 44.1; capture.
 ```sh
@@ -113,10 +124,29 @@ ssh root@192.168.10.1 'cat /sys/class/net/br-lan/bridge/vlan_filtering; bridge v
 # each port in exactly one zone VID, none in two.
 ```
 
-## 3. Drive as REAC MASTER — readiness (gated on understanding the handshake)
+## 3. Drive as REAC MASTER — readiness (gated on the ENROLMENT law)
 Goal: become the REAC clock master and drive a stagebox's analog outputs.
 **Prerequisite is the capture above** — we must observe + decode the real
 handshake before we can replay it.
+
+> **The handshake alone gets you silence.** A stagebox channel is digitally
+> silent until a **State-4 COMMIT** promotes staged head-amp values into the
+> active table. The commit is the sole promoter: it flushes 12 phantom groups
+> and replies `01 03 00 10`. An enrol frame does not arm a bank, and a box that
+> has announced, connected and is passing frames still carries nothing on a
+> channel that never received a committed head-amp record. So a bench test that
+> emits MASTER_ANNOUNCE + a control cadence + a tone and hears nothing has
+> proven nothing about protocol acceptance. Build the COMMIT into the sequence
+> before treating a silent box as a failed handshake. The law and the record
+> layout are in FreeREAC/reac-protocol.
+>
+> Head-amp granularity is three different things, and conflating them is the
+> usual way a commit ends up half-built: **SENS and flags are per CHANNEL**;
+> **phantom is per FOUR** (`ch >> 2`, and only multiple-of-four records carry
+> it); the **readback nibble is per EIGHT** (`ch >> 3`). SENS is 56 legal values
+> `0x00..0x37`, flat at ~1 dB/step, 54.60 dB of span measured by electrical
+> loopback (−10 dBu at `0x00`). The head-amp placement base is `0x00` on the
+> S-0808 and the S-4000S, `0x20` on the S-1608.
 
 - **The sequence (reacdriver `REACMasterDataStream` / `REACSplitDataStream`):**
   master broadcasts **MASTER_ANNOUNCE** (`type {0xCF,0xEA}`; carries `inChannels`/
