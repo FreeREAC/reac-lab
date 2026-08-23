@@ -204,7 +204,7 @@ rig-validated.
 - Jitter measurements: this session's `dist.py` / `burst.py` over the rig.
 - [REAC→AES67 bridge design](2026-05-30-reac-aes67-bridge-design.md) (shares the
   reac_capture / reac_decode / OpenWrt packaging).
-- [REAC protocol](../../REAC-PROTOCOL.md). Master-TX feasibility: task #28.
+- [REAC wire format](https://github.com/FreeREAC/reac-protocol) (`wire-format.md`). Master-TX feasibility: task #28.
 
 ## 11. Implementation status and findings
 

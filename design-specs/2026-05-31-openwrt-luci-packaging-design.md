@@ -5,7 +5,7 @@
 and mips (`ramips/mt7621`) (2026-05-31). Validated end-to-end on hardware on a
 Cudy WR2100 (`ramips/mt7621`); GL-MT6000 (`mediatek/filogic`) on-device smoke
 pending. See Phased delivery below.
-**Repo:** `linuxnow/reac-aes67`
+**Repo:** `FreeREAC/reac-aes67`
 **Depends on:** the M2 daemon (decode → media-clock → PLC → AES67 send), built.
 
 ## Goal

@@ -7,7 +7,7 @@
 
 > **NOTE (2026-06-13):** this apk/gretap cutover was **deliberately not deployed**.
 > The rig runs the hand-tuned `reacN-restore.sh` scripts instead — see
-> [`REAC-RIG-PARKED-STATE.md`](REAC-RIG-PARKED-STATE.md) for the actual,
+> [`rig-parked-state.md`](rig-parked-state.md) for the actual,
 > ear-validated parked configuration. This doc is retained for the future
 > clean-room apk build (the apks remain staged on reac1 at `/root/reac-apks/`).
 

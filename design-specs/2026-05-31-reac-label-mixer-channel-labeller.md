@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-31
 **Status:** Approved design; prototyping against the VMXProxy simulator.
-**Repo:** new, under the `linuxnow` org (e.g. `linuxnow/reac-label`), pairing
+**Repo:** new, under the `FreeREAC` org (`FreeREAC/reac-label`), pairing
 with `reac-aes67`.
 
 ## Goal

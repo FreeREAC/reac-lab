@@ -254,7 +254,7 @@ it unconditionally). 96 kHz/44.1 are **out of scope** — Dante AES67 interop is
 - linuxptp / OpenWrt net/linuxptp; mtk_eth_soc (no PHC → SW timestamping).
 - teodly/inferno, jsharkey/wycliffe (clean-room native Dante — why we don't).
 - Sibling: [REAC→AES67 bridge design](2026-05-30-reac-aes67-bridge-design.md);
-  [REAC protocol](../../REAC-PROTOCOL.md).
+  [REAC wire format](https://github.com/FreeREAC/reac-protocol) (`wire-format.md`).
 
 ## 12. Rig acceptance checklist (from the 2026-06-03 adversarial review)
 

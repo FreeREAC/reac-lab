@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-31
 **Status:** Plan, to execute at the venue (needs the live rig)
-**Repo:** `linuxnow/reac-aes67`
+**Repo:** `FreeREAC/reac-aes67`
 **Purpose:** A single structured capture session at the venue that closes the
 open questions blocking three threads at once:
 

@@ -4,7 +4,7 @@
 **Status:** PLANNED — not yet implemented. Implement + verify with a real
 OpenWrt SDK build next session, after the test suite passes. The tag `v0.1.0`
 ships the current vendoring recipe; this lands afterward on `main`.
-**Repo:** `linuxnow/reac-aes67`
+**Repo:** `FreeREAC/reac-aes67`
 **Related:** [OpenWrt packaging + LuCI app design](2026-05-31-openwrt-luci-packaging-design.md)
 
 ## Goal
@@ -43,7 +43,7 @@ Add the source coordinates:
 
 ```make
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/linuxnow/reac-aes67.git
+PKG_SOURCE_URL:=https://github.com/FreeREAC/reac-aes67.git
 PKG_SOURCE_VERSION:=<pinned commit SHA for the release>   # tag v$(PKG_VERSION) also works; SHA is more reproducible
 PKG_MIRROR_HASH:=<sha256 of the mirrored tarball>
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz

@@ -5,9 +5,8 @@
 tests + cross-verify green; apk built for aarch64. On-device smoke pending.
 OpenWrt packaging + LuCI: see the
 [packaging design](2026-05-31-openwrt-luci-packaging-design.md).
-**Repo:** `linuxnow/reac-aes67` (personal audio project; lives under the
-`linuxnow` org alongside `reac-tools` and `reac-docs`, NOT the signage
-platform).
+**Repo:** `FreeREAC/reac-aes67` (lives under the `FreeREAC` org alongside
+`reac-protocol`, `reac-tools` and `reac-docs`, NOT the signage platform).
 
 ## Goal
 
