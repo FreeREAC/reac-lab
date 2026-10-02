@@ -1,0 +1,20 @@
+# Moved to FreeREAC/freereac-ops as reac-lab/<path> (tools/freereac_ops.py). Cite one by its
+# slug, the path without its extension. The list is the guard's: a path here never comes back.
+# base e5beb9e036dd41f66efba85fb8be1071795462f4
+design-specs/2026-05-30-reac-aes67-bridge-design.md
+design-specs/2026-05-31-on-rig-capture-campaign.md
+design-specs/2026-05-31-openwrt-luci-packaging-design.md
+design-specs/2026-05-31-reac-label-mixer-channel-labeller.md
+design-specs/2026-05-31-source-fetching-recipe.md
+design-specs/2026-06-03-reac-dante-aes67-interop-design.md
+design-specs/2026-06-03-reac-repacer-design.md
+design-specs/2026-06-09-binary-search-pace.md
+design-specs/2026-06-09-clock-source-param.md
+design-specs/2026-06-09-cumulative-mean-pace.md
+design-specs/2026-06-10-native-openwrt-config.md
+design-specs/2026-06-11-etf-localin-clock-recovery.md
+journal/2026-06-10-rig-script-variants.md
+runbooks/on-rig-session-runbook.md
+runbooks/reac-aes67-pipewire-journal.md
+runbooks/reac-rig-install.md
+runbooks/rig-parked-state.md

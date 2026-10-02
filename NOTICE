@@ -3,8 +3,8 @@ Copyright (C) 2026 Pau Aliagas <linuxnow@gmail.com>
 
 Licensed under GPL-3.0-or-later (see LICENSE).
 
-The raw working material behind FreeREAC: design specs, working journal, on-site
-runbooks, and packet captures. All original work and observations. Site-, venue-,
-and client-specific details are stripped or replaced with neutral examples.
-Firmware reverse-engineering findings are re-expressed in the reac-protocol repo;
-no vendor binaries or decompilation listings are reproduced here.
+Field captures of REAC traffic for FreeREAC, with per-capture notes. All
+original work and observations. Site-, venue-, and client-specific details are
+stripped or replaced with neutral examples. Firmware reverse-engineering
+findings are not reproduced here; no vendor binaries or decompilation listings
+are included.
