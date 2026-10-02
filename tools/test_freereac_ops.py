@@ -126,6 +126,9 @@ class Check(Fixture):
         n, out = self.run_check()
         self.assertIn('CITES README.md:1 design-specs/: a directory that moved', out)
         self.assertEqual(n, 1, out)
+        # the word is prose, and a slug inside the directory is a citation
+        self.add('README.md', 'dated design-specs and runbooks; see design-specs/2026-01-01-x-design\n')
+        self.assertEqual(self.run_check()[0], 0)
         # a directory that still holds a public file is not gone
         self.add('README.md', 'the captures are in `captures/`\n')
         self.assertEqual(self.run_check()[0], 0)

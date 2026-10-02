@@ -112,8 +112,8 @@ def citation_patterns(paths, kept):
     kept_names = {k.rsplit('/', 1)[-1] for k in kept}
     out = []
     for d in gone_dirs(paths, kept):
-        # the directory by name, not a slug inside it (design-specs/<slug> is a citation, not this)
-        out.append((d + '/', re.compile((r'(?<![\w./-])%s/?(?![\w./-])' % re.escape(d)).encode())))
+        # `journal/`, not the word journal and not a slug inside it (journal/<slug> is a citation)
+        out.append((d + '/', re.compile((r'(?<![\w./-])%s/(?![\w.-])' % re.escape(d)).encode())))
     for p in paths:
         pats = [re.escape(p)]
         base = p.rsplit('/', 1)[-1]
