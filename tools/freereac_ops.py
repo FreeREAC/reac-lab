@@ -242,8 +242,8 @@ def export(ops, branch=BRANCH, repo=REPO, out=sys.stdout):
     """Commit the moved files at the list's base, byte-identical, onto <branch> of <ops>."""
     base, paths = read_moves(repo)
     if not has_commit(base, repo):
-        raise SystemExit('EXPORT REFUSED: base %s is not in this history; after the history rewrite '
-                         'it is under the backup/pre-rewrite-2026-10-01 tag' % base[:12])
+        raise SystemExit('EXPORT REFUSED: base %s is not in this clone; after the history rewrite '
+                         'fetch it with the backup/pre-rewrite-2026-10-01 tag' % base[:12])
     entries = []
     for p in paths:
         row = git('ls-tree', base, '--', p, cwd=repo).decode().strip()

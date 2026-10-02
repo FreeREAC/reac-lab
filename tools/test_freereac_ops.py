@@ -319,8 +319,10 @@ class RealTree(unittest.TestCase):
 
     def test_once_the_base_is_gone_the_history_carries_nothing_listed(self):
         base, paths = fo.read_moves()
-        if fo.has_commit(base):
-            self.skipTest('base %s still here: the history is not rewritten yet' % base[:12])
+        # gone from HEAD's history; a clone that fetched the backup tag still has the commit
+        if subprocess.run(['git', 'merge-base', '--is-ancestor', base, 'HEAD'], cwd=fo.REPO,
+                          capture_output=True).returncode == 0:
+            self.skipTest('base %s still in the history: it is not rewritten yet' % base[:12])
         buf = io.StringIO()
         self.assertEqual(fo.history_check(('HEAD',), out=buf), 0, buf.getvalue())
 
