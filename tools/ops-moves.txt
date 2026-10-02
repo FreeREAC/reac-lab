@@ -1,5 +1,7 @@
 # Moved to FreeREAC/freereac-ops as reac-lab/<path> (tools/freereac_ops.py). Cite one by its
-# slug, the path without its extension. The list is the guard's: a path here never comes back.
+# slug, the path without its extension. The list is the guard's: a path here never comes back,
+# to the tree or to the history: the history rewrite (RULED 2026-10-01 item 2) drops every path
+# below, and the base commit then lives on only under the backup/pre-rewrite-2026-10-01 tag.
 # base e5beb9e036dd41f66efba85fb8be1071795462f4
 design-specs/2026-05-30-reac-aes67-bridge-design.md
 design-specs/2026-05-31-on-rig-capture-campaign.md
