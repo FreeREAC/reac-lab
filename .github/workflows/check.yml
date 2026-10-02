@@ -6,8 +6,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # tools/ops-moves.txt names its base commit
+          fetch-depth: 0  # the history check reads every commit
       - name: tool tests
         run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: public tree
         run: python3 tools/freereac_ops.py check
+      - name: public history
+        run: python3 tools/freereac_ops.py history-check HEAD
