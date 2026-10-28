@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """tools/freereac_ops.py on throwaway git repos: the public-tree guard, the resolver rungs and the
-ops export. Run: python3 -m unittest discover -s tools -p 'test_*.py'"""
+ops export. The name rules come from a throwaway rules file with made-up names: the real ones
+are what the tool keeps out of this tree. Run: python3 -m unittest discover -s tools -p 'test_*.py'"""
 import io
 import os
 import shutil
@@ -15,6 +16,7 @@ import freereac_ops as fo  # noqa: E402
 
 MOVED = ['design-specs/2026-01-01-x-design.md', 'runbooks/rig-install.md',
          'captures/2026-01-02-y-plan.md']
+RULES = '# made-up name rules for the tests\ninternal/\ndocs/private/\n\nPRIVATE.txt\nTODO.txt\n'
 
 
 def sh(cwd, *args):
@@ -27,6 +29,13 @@ def write(root, rel, text):
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, 'w') as f:
         f.write(text)
+
+
+def rules_checkout(tmp):
+    """An ops checkout under <tmp> that carries only the test rules; returns its path."""
+    ops = os.path.join(tmp, 'rules-ops')
+    write(ops, fo.RULES, RULES)
+    return ops
 
 
 class Fixture(unittest.TestCase):
@@ -61,8 +70,8 @@ class Fixture(unittest.TestCase):
         shutil.rmtree(self.tmp)
 
     def run_check(self):
-        buf = io.StringIO()
-        n = fo.check(self.pub, out=buf)
+        buf, self.err = io.StringIO(), io.StringIO()
+        n = fo.check(self.pub, out=buf, err=self.err)
         return n, buf.getvalue()
 
     def add(self, rel, text):
@@ -70,21 +79,42 @@ class Fixture(unittest.TestCase):
         sh(self.pub, 'add', rel)
 
     def make_ops(self, root, paths=MOVED):
+        write(root, fo.RULES, RULES)
         for p in paths:
             write(root, os.path.join(fo.OPS_SUBDIR, p), 'internal %s\n' % p)
 
 
 class Classifier(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.rules = fo.read_rules(rules_checkout(self.tmp))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_rules_file(self):
+        self.assertEqual(self.rules, (('internal/', 'docs/private/'), ('PRIVATE.txt', 'TODO.txt')))
+        self.assertEqual(fo.read_rules(None), ((), ()))
+        with self.assertRaises(SystemExit):  # a checkout without the file is not an empty rule set
+            fo.read_rules(self.tmp)
+
     def test_rule(self):
         for p in ('design-specs/2026-05-30-x-design.md', 'runbooks/on-rig-session-runbook.md',
-                  'journal/2026-06-10-x.md', 'plans/wave-3.txt', 'notes/x.json', 'adr/0001-x.md',
-                  'audits/2026-09-25-x.tsv', '.claude/skills/x/SKILL.md', 'ROADMAP.md',
-                  'CLAUDE.md', 'captures/2026-09-01-plan.md', 'x-plan.md'):
-            self.assertTrue(fo.belongs_in_ops(p), p)
+                  'journal/2026-06-10-x.md', 'internal/wave-3.txt', 'docs/private/x.json',
+                  'internal/skills/x/SKILL.md', 'PRIVATE.txt', 'docs/TODO.txt', 'ROADMAP.md',
+                  'captures/2026-09-01-plan.md', 'x-plan.md'):
+            self.assertTrue(fo.belongs_in_ops(p, self.rules), p)
         for p in ('README.md', 'NOTICE', 'LICENSE', 'BUILDING.md', 'CONTRIBUTING.md',
                   'captures/README.md', 'captures/a.pcap', 'captures/a.notes.txt',
-                  'tools/ops-moves.txt', 'tools/freereac_ops.py', '.github/workflows/check.yml'):
-            self.assertFalse(fo.belongs_in_ops(p), p)
+                  'tools/ops-moves.txt', 'tools/freereac_ops.py', '.github/workflows/check.yml',
+                  'internals.txt', 'docs/privateer.txt', 'TODO.rst'):
+            self.assertFalse(fo.belongs_in_ops(p, self.rules), p)
+
+    def test_without_rules_only_the_pattern_classifies(self):
+        self.assertFalse(fo.belongs_in_ops('internal/wave-3.txt', ((), ())))
+        self.assertTrue(fo.belongs_in_ops('internal/x.md', ((), ())))
+        with mock.patch.dict(os.environ, {'FREEREAC_OPS': rules_checkout(self.tmp)}):
+            self.assertTrue(fo.belongs_in_ops('internal/wave-3.txt'))  # None reads the checkout
 
     def test_slug(self):
         self.assertEqual(fo.slug('runbooks/rig-parked-state.md'), 'runbooks/rig-parked-state')
@@ -99,6 +129,7 @@ class Check(Fixture):
         n, out = self.run_check()
         self.assertEqual(n, 0, out)
         self.assertIn('OPS-ABSENT moves-resolve: skipped', out)
+        self.assertIn('RULES-ABSENT', self.err.getvalue())
         self.assertIn('CHECK OK', out)
 
     def test_moved_path_still_public_fails(self):
@@ -111,6 +142,18 @@ class Check(Fixture):
         self.add('journal/2026-10-02-x.md', 'new entry\n')
         n, out = self.run_check()
         self.assertIn('INTERNAL journal/2026-10-02-x.md', out)
+
+    def test_named_directory_fails_only_with_the_rules(self):
+        self.add('internal/x.json', '{}\n')
+        n, out = self.run_check()
+        self.assertEqual(n, 0, out)  # no ops checkout: the pattern rule alone, and it is not .md
+        os.environ['FREEREAC_OPS'] = rules_checkout(self.tmp)
+        n, out = self.run_check()
+        self.assertIn('INTERNAL internal/x.json', out)
+        self.assertNotIn('RULES-ABSENT', self.err.getvalue())
+        os.environ['FREEREAC_OPS'] = os.path.join(self.tmp, 'pub')  # a checkout without the file
+        with self.assertRaises(SystemExit):
+            self.run_check()
 
     def test_citation_by_file_fails_and_slug_passes(self):
         self.add('captures/README.md', 'see runbooks/rig-install.md and 2026-01-02-y-plan.md\n')
@@ -146,6 +189,7 @@ class Check(Fixture):
         n, out = self.run_check()
         self.assertEqual(n, 0, out)
         self.assertIn('OPS OK 3 moved paths', out)
+        self.assertEqual(self.err.getvalue(), '')
         self.assertEqual(fo.resolve('runbooks/rig-install', self.pub),
                          os.path.join(ops, 'reac-lab', 'runbooks', 'rig-install.md'))
 
@@ -175,6 +219,7 @@ class Export(Fixture):
             write(ops, 'README.md', 'ops\n')
             sh(ops, 'add', '-A')
             sh(ops, 'commit', '-qm', 'seed')
+        write(ops, fo.RULES, RULES)  # untracked: what `check` reads through the sibling rung
         return ops
 
     def ls(self, ops, ref):
@@ -238,7 +283,7 @@ class RealTree(unittest.TestCase):
         env = {k: v for k, v in os.environ.items() if k != 'FREEREAC_REQUIRE_OPS'}
         with mock.patch.dict(os.environ, env, clear=True):
             buf = io.StringIO()
-            self.assertEqual(fo.check(out=buf), 0, buf.getvalue())
+            self.assertEqual(fo.check(out=buf, err=io.StringIO()), 0, buf.getvalue())
 
 
 if __name__ == '__main__':

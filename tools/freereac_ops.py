@@ -18,6 +18,14 @@ commit it was taken from); a public file cites one by its SLUG, the path without
 The ops checkout is found by one rule: $FREEREAC_OPS, else the sibling ../freereac-ops, else
 absent. Absent, `check` reports OPS-ABSENT and skips that half by name; FREEREAC_REQUIRE_OPS=1
 makes it fail instead (a desk or a lane that must not merge a half-done move).
+
+What counts as notebook material is two kinds of rule. The pattern rule is in this file: any
+Markdown file outside the kept set. The name rules -- the notebook directories and file names
+themselves -- are the thing the split keeps out of public trees, so they are not spelled here:
+they live once, in the ops checkout, as history-internal.txt at its root, shared by every
+repository's copy of these tools. A line ending in "/" is a path prefix, any other non-comment
+line a bare file name. Without the checkout only the move list and the pattern rule classify,
+and `check` says so (RULES-ABSENT) on stderr; a checkout that lacks the file is an error.
 """
 import os
 import re
@@ -29,14 +37,12 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MOVES = 'tools/ops-moves.txt'
 OPS_SUBDIR = 'reac-lab'
 BRANCH = 'lane/docs-reac-lab'
+RULES = 'history-internal.txt'  # at the root of the ops checkout: the name rules
 
 # What stays public: these files, and everything under these directories.
 KEEP_FILES = {'README.md', 'BUILDING.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'LICENSE', 'NOTICE',
               'captures/README.md'}
 KEEP_DIRS = ('tools/', '.github/')
-# The notebook: specs, plans, ADRs, journals, runbooks, notes, audits and agent tooling.
-INTERNAL_DIRS = ('design-specs/', 'runbooks/', 'journal/', 'plans/', 'notes/', 'audits/', 'adr/',
-                 '.claude/')
 # A moved file whose BARE name is a citation too.
 BARE_CITED_EXT = ('.md',)
 # Files that name the moved paths by necessity.
@@ -44,11 +50,30 @@ SCAN_EXEMPT = {MOVES, 'tools/freereac_ops.py', 'tools/test_freereac_ops.py'}
 CAPTURE = re.compile(r'\.(pcap(ng)?\d*|cap)$')
 
 
-def belongs_in_ops(path):
-    """True when <path> is lab-notebook material: it lives in freereac-ops."""
+def read_rules(root):
+    """(path prefixes, file names) from <root>/history-internal.txt; both empty when the ops
+    checkout is absent. A checkout without the file is an error, not an empty rule set."""
+    if root is None:
+        return (), ()
+    path = os.path.join(root, RULES)
+    if not os.path.isfile(path):
+        raise SystemExit('%s: the ops checkout carries no %s' % (root, RULES))
+    prefixes, names = [], []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                (prefixes if line.endswith('/') else names).append(line)
+    return tuple(prefixes), tuple(names)
+
+
+def belongs_in_ops(path, rules=None):
+    """True when <path> is lab-notebook material: it lives in freereac-ops. <rules> is
+    read_rules()'s pair; None reads it from the ops checkout."""
     if path in KEEP_FILES or path.startswith(KEEP_DIRS):
         return False
-    return path.startswith(INTERNAL_DIRS) or path.endswith('.md')
+    prefixes, names = read_rules(ops_root()) if rules is None else rules
+    return path.startswith(prefixes) or path.rsplit('/', 1)[-1] in names or path.endswith('.md')
 
 
 def slug(path):
@@ -123,9 +148,14 @@ def citation_patterns(paths, kept):
     return out
 
 
-def check(repo=REPO, out=sys.stdout):
+def check(repo=REPO, out=sys.stdout, err=sys.stderr):
     """Every failure on its own line; returns the count."""
     fails = 0
+    root = ops_root(repo)
+    if root is None:
+        print('RULES-ABSENT: no $FREEREAC_OPS and no ../freereac-ops, so no name rules; only %s '
+              'and the pattern rule classify' % MOVES, file=err)
+    rules = read_rules(root)
 
     def fail(msg):
         nonlocal fails
@@ -140,7 +170,7 @@ def check(repo=REPO, out=sys.stdout):
         if p in present:
             fail('STILL-PUBLIC %s: listed as moved to freereac-ops' % p)
     for t in tracked:
-        if t not in paths and belongs_in_ops(t):
+        if t not in paths and belongs_in_ops(t, rules):
             fail('INTERNAL %s: lab-notebook material belongs in freereac-ops (%s)' % (t, MOVES))
     pats = citation_patterns(paths, [t for t in tracked if t not in paths])
     for t in tracked:
@@ -158,7 +188,6 @@ def check(repo=REPO, out=sys.stdout):
                     fail('CITES %s:%d %s: a directory that moved to freereac-ops' % (t, line, p))
                 else:
                     fail('CITES %s:%d %s: cite the slug %s, not the file' % (t, line, p, slug(p)))
-    root = ops_root(repo)
     if root is None:
         if os.environ.get('FREEREAC_REQUIRE_OPS') == '1':
             fail('OPS-ABSENT moves-resolve: FREEREAC_REQUIRE_OPS=1 and no freereac-ops checkout '
