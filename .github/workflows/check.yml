@@ -5,8 +5,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # tools/ops-moves.txt names its base commit
       - name: tool tests
         run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: public tree
