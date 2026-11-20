@@ -9,3 +9,10 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: public tree
         run: python3 tools/freereac_ops.py check
+
+  pr-fixes-issue:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: Open-Mixer/.github/.github/workflows/pr-fixes-issue.yml@openmixer-v1
